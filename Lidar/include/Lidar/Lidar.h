@@ -1,9 +1,10 @@
 #include <stdlib.h>
 #include <vector>
-#include <Eigen/Dense>
 
+#ifndef LIDAR_H_
+#define LIDAR_H_
 
-#define PI 3.14159265359
+const double PI =  3.14159265359;
 
 struct Measurement {
   Measurement(double d, double a) : 
@@ -14,18 +15,17 @@ struct Measurement {
 
 class Lidar {
   public: 
-  Lidar(int measurements_) : measurements_per_cycle(measurements_) {
-    for (int i = 0; i<3; i++) {
-      for (int j = 0; j<3; j++) {
-        matrix(i,j) = i + j;
-      }
-    }
+  Lidar(int measurements_, int range_) : measurements_per_cycle(measurements_),
+    range(range_) {
   }
 
   std::vector<Measurement> scanACircle(const int radius);
-    
-  Eigen::Matrix3d matrix;
-
+  int getMeasurementsPerCycle();
+  int getRange();
+  
   private:
   int measurements_per_cycle = 360;
+  int range;
 };
+
+#endif

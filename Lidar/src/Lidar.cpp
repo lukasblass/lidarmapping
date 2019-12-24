@@ -1,5 +1,5 @@
 
-#include "Lidar/Lidar.h"
+#include <Lidar/Lidar.h>
 
 std::vector<Measurement> Lidar::scanACircle(const int radius) {
   std::vector<Measurement> out;
@@ -9,4 +9,12 @@ std::vector<Measurement> Lidar::scanACircle(const int radius) {
     out.push_back(Measurement(radius, angle));
   }
   return out;
+}
+
+int Lidar::getMeasurementsPerCycle() {
+  return measurements_per_cycle;
+}
+
+int Lidar::getRange() {
+  return range;
 }
