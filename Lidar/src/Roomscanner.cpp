@@ -1,5 +1,6 @@
 #include <Lidar/Roomscanner.h>
 #include <math.h>
+#include <iostream>
 
 Roomscanner::Roomscanner(Lidar lidar_, std::vector<Room2D> rooms_) :
     lidar(lidar_), rooms(rooms_) {}
@@ -16,7 +17,8 @@ void Roomscanner::scanRooms(const Point2& pos, const double sensor_heading,
   for (int i=0; i < mps; i++) {
     double heading = i * ((2 * PI) / mps);
     Point2 end_of_ray(lidar.getRange() * cos(heading),
-                       lidar.getRange() * sin(heading));
+                      lidar.getRange() * sin(heading));
+    end_of_ray = end_of_ray + pos;                      
     Line ray(pos, end_of_ray);
 
     double min_dist = INFINITY;
@@ -42,6 +44,26 @@ void Roomscanner::scanRooms(const Point2& pos, const double sensor_heading,
 }
 
 double Roomscanner::computeDistanceRayToWall(const Line& ray, const Line& wall) {
-  // first, we mirror the ray at the wall
-  return 1.;
+  // directional vector for ray: 
+  Vector2 ray_vector = ray.p1 - ray.p2;
+  Vector2 wall_vector = wall.p1 - wall.p2;
+  Matrix2 A;
+  A.col(0) = ray_vector;
+  A.col(1) = -wall_vector;
+
+  Vector2 b = ray.p1 - wall.p1; // right hand side of the LSE
+  std::cout << ray_vector << std::endl;
+  std::cout << wall_vector<< std::endl;
+  Vector2 x = A.colPivHouseholderQr().solve(b);
+  
+  // we have an intersection if the solution to above LSE is a vector
+  // where both entries lie in [0,1]
+  if (x(0) >= 0. && x(0) <= 1. &&
+      x(1) >= 0. && x(1) <= 1.) {
+    // we now have to find the actual intersection point
+    Point2 intersection_point = ray.p1 + x(0) * ray_vector;
+    return (intersection_point - ray.p1).norm();
+  } else {
+    return -1.;
+  }
 }

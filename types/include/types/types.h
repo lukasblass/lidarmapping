@@ -7,6 +7,7 @@ typedef Eigen::Vector3d Vector3;
 typedef Eigen::Vector2d Vector2;
 typedef Eigen::Vector3d Point3;
 typedef Eigen::Vector2d Point2;
+typedef Eigen::Matrix2d Matrix2;
 
 
 class TestDummy {

@@ -8,7 +8,7 @@
 #define ROOMSCANNER_H_
 
 struct Line {
-  Line(Point2 p1_, Point2 p2_) : p1(p1), p2(p2) {}
+  Line(Point2 p1_, Point2 p2_) : p1(p1_), p2(p2_) {}
   Point2 p1;
   Point2 p2;
 };
