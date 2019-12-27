@@ -52,8 +52,6 @@ double Roomscanner::computeDistanceRayToWall(const Line& ray, const Line& wall) 
   A.col(1) = -wall_vector;
 
   Vector2 b = ray.p1 - wall.p1; // right hand side of the LSE
-  std::cout << ray_vector << std::endl;
-  std::cout << wall_vector<< std::endl;
   Vector2 x = A.colPivHouseholderQr().solve(b);
   
   // we have an intersection if the solution to above LSE is a vector
