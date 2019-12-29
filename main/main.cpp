@@ -5,6 +5,7 @@
 #include <Lidar/Lidar.h>
 #include <Lidar/Roomscanner.h>
 #include <types/types.h>
+#include <Robot/RoboCar.h>
 // for threads
 #include <utility>
 #include <thread>
@@ -55,6 +56,7 @@ int main() {
   std::thread plotting_thread((PlottingThread()));
   std::thread writeToFile(writingToFileFunction, ms, pos);
   writeToFile.join();
+  RoboCar car;
 
   plotting_thread.join();
   return 1;

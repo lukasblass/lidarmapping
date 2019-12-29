@@ -7,5 +7,6 @@ target_link_libraries(${PROJECT_NAME}
     LidarSensor
     types
     Plotting
+    Robot
 )
 
