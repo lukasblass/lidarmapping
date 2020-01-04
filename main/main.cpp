@@ -16,17 +16,40 @@
 
 // converts the measurements to cartesian space and writes them 
 // to file
-void writingToFileFunction(std::vector<Measurement> ms, std::vector<Vector3> car_positions) {
+void writingToFileFunction(std::vector<Measurement> ms, std::vector<Vector3> car_states,
+        const std::pair<double,double> car_dimensions) {
   std::ofstream outstream;
   outstream.open("../Plotting/data.txt");
-  for (const Vector3& pos : car_positions) {
-    outstream << pos(0) << " " << pos(1) << std::endl;
+  double w = car_dimensions.first / 2;
+  double l = car_dimensions.second;
+  for (const Vector3& pos : car_states) {
+    // build the transformation matrix mapping from the cars to the intertial coordinate frame
+    const double theta = pos(2);
+    Matrix3 transformation;
+    transformation << cos(theta), -sin(theta), pos(0), 
+                      sin(theta),  cos(theta), pos(1),
+                      0,           0,          1;
+    Vector3 c1, c2, c3, c4; // the corners of the car represented in the cars coordinate frame
+    c1 = Vector3(l, w, 1);
+    c2 = Vector3(0, w, 1);
+    c3 = Vector3(0, -w, 1);
+    c4 = Vector3(l, -w, 1);
+    // now transform the corners of the car to the intertial coordinate frame
+    c1 = transformation * c1;
+    c2 = transformation * c2;
+    c3 = transformation * c3;
+    c4 = transformation * c4;
+    // and write the corners to file
+    outstream <<  c1(0) << " " << c1(1) << " " <<
+                  c2(0) << " " << c2(1) << " " <<
+                  c3(0) << " " << c3(1) << " " <<
+                  c4(0) << " " << c4(1) << std::endl;
   }
   outstream << "walls"<< std::endl;
   for (const Measurement& m : ms) {
     if (m.distance >= 0) {
-      Point2 pt(car_positions[0](0) + m.distance * cos(m.angle), 
-                car_positions[0](0) + m.distance * sin(m.angle));
+      Point2 pt(car_states[0](0) + m.distance * cos(m.angle), 
+                car_states[0](0) + m.distance * sin(m.angle));
       outstream << pt(0) << " " << pt(1) << std::endl;
     }
   }
@@ -58,19 +81,22 @@ int main() {
   Roomscanner scanner(car.lidar, {Room2D(corners)});
   std::vector<Measurement> ms;
   scanner.scanRooms(car.getPosition(), 0., ms);
-  
-  car.applyAcceleration(Vector2(1., 3.), 0.2);
-  car_states.push_back(car.getState());
   // now let's move the car
-  for (int i=0; i<100; i++) {
-    car.applyAcceleration(Vector2(0., 0.), 0.2);
-    car_states.push_back(car.getState());
+  for (int i=0; i<50; i++) {
+    car.applyControlInput(Vector2(.2, .3), 0.1);
+    if (i % 5 == 0) {
+      car_states.push_back(car.getState());
+    } 
   }
-
-  std::thread writeToFile(writingToFileFunction, ms, car_states);
+  for (int i=0; i<50; i++) {
+    car.applyControlInput(Vector2(.2, -.3), 0.1);
+    if (i % 5 == 0) {
+      car_states.push_back(car.getState());
+    } 
+  }
+  std::thread writeToFile(writingToFileFunction, ms, car_states, car.CAR_DIMENSIONS);
   writeToFile.join();
   
-
   plotting_thread.join();
   return 1;
 }
