@@ -17,6 +17,7 @@
 // converts the measurements to cartesian space and writes them 
 // to file
 void writingToFileFunction(std::vector<Measurement> ms, std::vector<Vector3> car_states,
+        std::vector<Vector3> measured_car_states,
         const std::pair<double,double> car_dimensions) {
   std::ofstream outstream;
   outstream.open("../Plotting/data.txt");
@@ -39,12 +40,17 @@ void writingToFileFunction(std::vector<Measurement> ms, std::vector<Vector3> car
     c2 = transformation * c2;
     c3 = transformation * c3;
     c4 = transformation * c4;
-    // and write the corners to file
+    // and write thge corners to file
     outstream <<  c1(0) << " " << c1(1) << " " <<
                   c2(0) << " " << c2(1) << " " <<
                   c3(0) << " " << c3(1) << " " <<
                   c4(0) << " " << c4(1) << std::endl;
   }
+  outstream << "car_estimations" << std::endl;
+  for (const Vector3& state : measured_car_states) {
+    outstream << state(0) << " " << state(1) << std::endl;
+  }
+
   outstream << "walls"<< std::endl;
   for (const Measurement& m : ms) {
     if (m.distance >= 0) {
@@ -66,7 +72,9 @@ int main() {
 
   // storing where the car went
   std::vector<Vector3> car_states;
+  std::vector<Vector3> measured_car_states;
   car_states.push_back(initial_state);
+  measured_car_states.push_back(initial_state);
   
   // seting up the geometry
   std::vector<Eigen::Vector2d> corners;
@@ -83,18 +91,21 @@ int main() {
   scanner.scanRooms(car.getPosition(), 0., ms);
   // now let's move the car
   for (int i=0; i<50; i++) {
-    car.applyControlInput(Vector2(.2, .3), 0.1);
-    if (i % 5 == 0) {
-      car_states.push_back(car.getState());
+    car.applyControlInput(Vector2(.2, 0.), 0.1);
+    if (i % 15 == 0) {
+      car_states.push_back(car.getActualState());
+      measured_car_states.push_back(car.getMeasuredState());
     } 
   }
   for (int i=0; i<50; i++) {
-    car.applyControlInput(Vector2(.2, -.3), 0.1);
-    if (i % 5 == 0) {
-      car_states.push_back(car.getState());
+    car.applyControlInput(Vector2(.2, -0.), 0.1);
+    if (i % 15 == 0) {
+      car_states.push_back(car.getActualState());
+      measured_car_states.push_back(car.getMeasuredState());
     } 
   }
-  std::thread writeToFile(writingToFileFunction, ms, car_states, car.CAR_DIMENSIONS);
+  std::thread writeToFile(writingToFileFunction, ms, car_states,
+      measured_car_states, car.CAR_DIMENSIONS);
   writeToFile.join();
   
   plotting_thread.join();
