@@ -43,6 +43,8 @@ void RoboCar::applyControlInput(Vector2 signal, double dt) {
   this->signal = signal;
   // set current to old velocity
   i_velocity_old = i_velocity;
+  actual_state_old = actual_state;
+
   // now from the signal determine the cars velocities
   double c_v = mapGasPedalToVelocity(signal(0)); // cars velocity along its x-axis
   i_velocity(0) = c_v * cos(actual_state(2));
@@ -63,16 +65,34 @@ void RoboCar::applyControlInput(Vector2 signal, double dt) {
 }
 
 void RoboCar::updateStateFromIMUMeasurement(const double dt) {
-  Vector2 I_a = getAccelerationSensorMeasurement(signal(1), dt);
+  // read the sensor for the current timestep
+  Vector2 I_a = imu.linearAccelerationsMeasurement(i_velocity, i_velocity_old, 
+        actual_state_old, dt);
+  double w = imu.gyroscopeMeasurement(i_velocity);
+  Vector3 omega(0., 0., w); // vector representing angular velocity in I frame
+  double alpha = (w - i_velocity_old(2)) / dt; // angular acceleration
+  Vector3 psi(0., 0., alpha); // vector representing angular acceleration in I frame
+  
+  // transformation matrix from car frame to inertial coordinate frame 
+  Matrix3 I_C_T;
+  I_C_T <<  cos(measured_state(2)), -sin(measured_state(2)), measured_state(0),
+            sin(measured_state(2)),  cos(measured_state(2)), measured_state(1),
+            0,                       0,                      1;
+  
+  // the cars origin in inertial coordinate frame
+  Vector3 I_car_origin = I_C_T * Vector3(0., 0., 0.);
+
+  Vector3 angular_acc_part = psi.cross(I_car_origin);
+  Vector3 angular_vel_part = omega.cross(omega.cross(I_car_origin));
+
+  // now subract the angular components in order to obtain a vector representing
+  // uniquely the linear motion (needed to update position)
+  I_a = I_a - angular_acc_part.topRows(2) - angular_vel_part.topRows(2);
+
+  // finally, integrate accelerations & velocities forward
   measured_velocity = measured_velocity + I_a * dt;
   measured_state.topRows(2) = measured_state.topRows(2) + measured_velocity * dt;
-}
-
-Vector2 RoboCar::getAccelerationSensorMeasurement(const double gamma, const double dt) {
-  Vector2 acceleration = imu.linearAccelerationsMeasurement(i_velocity, i_velocity_old, 
-        actual_state, WHEEL_BASE, gamma, dt);
-  std::cout << "a: " << acceleration.transpose() << std::endl;
-  return acceleration;
+  measured_state(2) = measured_state(2) + w * dt;
 }
 
 const Vector2 RoboCar::getPosition() {

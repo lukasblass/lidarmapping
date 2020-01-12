@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <random>
 #include <types/types.h>
 #include <Lidar/Lidar.h>
 
@@ -12,7 +13,16 @@
  * */
 class AccelerationSensor {
   public:
-  AccelerationSensor() {}
+  AccelerationSensor() {
+    distribution_gyro = std::normal_distribution<double>(0., 0.1);
+    distribution_acc = std::normal_distribution<double>(0., 0.05);
+    add_noise = true;
+  }
+  
+  AccelerationSensor(const double sigma_gyro, const double sigma_acc) {
+    distribution_gyro = std::normal_distribution<double>(0., sigma_gyro);
+    distribution_acc = std::normal_distribution<double>(0., sigma_acc);
+  }
 
   /**
    * \brief given the cars velocity vectors returns a sensor measurement for
@@ -23,52 +33,53 @@ class AccelerationSensor {
    */
   double gyroscopeMeasurement(const Vector3& i_velocity) {
     // TODO implement noise
+    if (add_noise) {
+      return i_velocity(2) + distribution_gyro(generator);
+    } else {
       return i_velocity(2);
+    }
   }
 
-  // TODO implement noise
-  // TODO figure out angular accelerations
   Vector2 linearAccelerationsMeasurement(const Vector3& i_velocity,
                                          const Vector3& i_velocity_old,
                                          const Vector3& state,
-                                         const double wheel_base,
-                                         const double gamma,
                                          const double dt) {
     Vector2 linear_part = (i_velocity.topRows(2) - i_velocity_old.topRows(2)) / dt;
-    
-    // in case gamma = 0 we don't have angular acceleration and just return
-    if (abs(gamma) < 1e-9) {
-      return linear_part;
-    } 
-    // now let's compute the acceleration caused by the circular motion
-    // if we set a frame in the center of the turning radius, we can simply compute
-    double turning_radius = wheel_base / tan(gamma);
-    // the transformation matrix taking a vector from the coordinate frame of the 
-    // turning point to the coordinate frame of the car
-    Matrix3 C_E_T;
-    C_E_T << 1, 0, 0,
-             0, 1, -turning_radius,
-             0, 0, 1;
-    Vector3 E_r(0., turning_radius, 0.); // vector to car frame from turning frame
-    Vector3 E_r_w2 = E_r * pow(i_velocity(2), 2);
-    E_r_w2(2) = 1.;
+    Vector2 acceleration = linear_part;
+
+    double angular_acceleration = (i_velocity(2) - i_velocity_old(2)) / dt;
+    Vector3 psi(0., 0., angular_acceleration);
+    Vector3 omega(0., 0., i_velocity(2));
 
     // transformation matrix from car frame to inertial coordinate frame 
     Matrix3 I_C_T;
     I_C_T << cos(state(2)), -sin(state(2)), state(0),
-             sin(state(2)), cos(state(2)), state(1),
-             0, 0, 1;
-    Vector3 I_r_w2 = I_C_T * C_E_T * E_r_w2;
+              sin(state(2)), cos(state(2)), state(1),
+              0, 0, 1;
+    
+    // the cars origin in inertial coordinate frame
+    Vector3 I_car_origin = I_C_T * Vector3(0., 0., 0.);
 
-    return linear_part + I_r_w2.topRows(2);     
+    Vector3 angular_acc_part = psi.cross(I_car_origin);
+    Vector3 angular_vel_part = omega.cross(omega.cross(I_car_origin));
+
+    acceleration = acceleration + angular_acc_part.topRows(2) + 
+                    angular_vel_part.topRows(2);
+    if (add_noise) {
+      return acceleration + Vector2(distribution_acc(generator), distribution_acc(generator));
+    } else {
+      return acceleration;
+    } 
   }
 
   private:
-  double sigma;
+  std::default_random_engine generator;
+  std::normal_distribution<double> distribution_gyro;
+  std::normal_distribution<double> distribution_acc;
+  bool add_noise;
 };
 
 class RoboCar {
-  friend class AccelerationSensor;
   public:
   RoboCar(Lidar lidar, Vector3 initial_state);
   
@@ -102,8 +113,6 @@ class RoboCar {
 
   void updateStateFromIMUMeasurement(const double dt);
 
-  Vector2 getAccelerationSensorMeasurement(const double gamma, const double dt);
-
   const Vector2 getPosition();
   const Vector3& getActualState();
   const Vector3& getMeasuredState();
@@ -113,14 +122,15 @@ class RoboCar {
   const std::pair<double,double> CAR_DIMENSIONS = std::pair<double,double>(0.05, 0.25);
 
   private:
-  Vector3 actual_state; // (state(0), state(1)) = (x,y) // state(2) = theta
-  Vector3 measured_state; // (state(0), state(1)) = (x,y) // state(2) = theta
-  
-  Matrix3 transformation; // TODO figure out if this is needed or not
   Vector2 signal; // input signal at current timestep
+
+  Vector3 actual_state; // (state(0), state(1)) = (x,y) // state(2) = theta
+  Vector3 actual_state_old; // (state(0), state(1)) = (x,y) // state(2) = theta
+  Vector3 measured_state; // (state(0), state(1)) = (x,y) // state(2) = theta
+
   Vector3 i_velocity; // velocity in inertial frame
-  Vector3 i_velocity_old; // // velocity in inertial frame of previous time step
-  Vector2 measured_velocity; 
+  Vector3 i_velocity_old; // velocity in inertial frame of previous time step
+  Vector2 measured_velocity;
 
   AccelerationSensor imu;
 

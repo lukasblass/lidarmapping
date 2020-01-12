@@ -29,11 +29,21 @@ def readFileAndShow():
     line = f.readline()
   
   line = f.readline()
-  ex, ey = [], []
+  
   while not (line == "walls\n"):
+    ex, ey = [], []
     row = line.split()
     ex.append(float(row[0]))
     ey.append(float(row[1]))
+    ex.append(float(row[2]))
+    ey.append(float(row[3]))
+    ex.append(float(row[4]))
+    ey.append(float(row[5]))
+    ex.append(float(row[6]))
+    ey.append(float(row[7]))
+    ex.append(float(row[0]))
+    ey.append(float(row[1]))
+    plt.plot(ex, ey, color="black")
     line = f.readline()
   
   line = f.readline()
@@ -46,7 +56,7 @@ def readFileAndShow():
   
   f.close()
   
-  plt.scatter(ex, ey, color="black")
+  #plt.scatter(ex, ey, color="black")
   plt.scatter(x, y, color="blue")
   plt.draw()
   plt.pause(1)

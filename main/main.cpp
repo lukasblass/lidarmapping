@@ -48,7 +48,28 @@ void writingToFileFunction(std::vector<Measurement> ms, std::vector<Vector3> car
   }
   outstream << "car_estimations" << std::endl;
   for (const Vector3& state : measured_car_states) {
-    outstream << state(0) << " " << state(1) << std::endl;
+    // build the transformation matrix mapping from the cars to the intertial coordinate frame
+    const double theta = state(2);
+    Matrix3 transformation;
+    transformation << cos(theta), -sin(theta), state(0), 
+                      sin(theta),  cos(theta), state(1),
+                      0,           0,          1;
+    Vector3 c1, c2, c3, c4; // the corners of the car represented in the cars coordinate frame
+    c1 = Vector3(l, w, 1);
+    c2 = Vector3(0, w, 1);
+    c3 = Vector3(0, -w, 1);
+    c4 = Vector3(l, -w, 1);
+    // now transform the corners of the car to the intertial coordinate frame
+    c1 = transformation * c1;
+    c2 = transformation * c2;
+    c3 = transformation * c3;
+    c4 = transformation * c4;
+    // and write thge corners to file
+    outstream <<  c1(0) << " " << c1(1) << " " <<
+                  c2(0) << " " << c2(1) << " " <<
+                  c3(0) << " " << c3(1) << " " <<
+                  c4(0) << " " << c4(1) << std::endl;
+    //outstream << state(0) << " " << state(1) << std::endl;
   }
 
   outstream << "walls"<< std::endl;
@@ -91,15 +112,29 @@ int main() {
   scanner.scanRooms(car.getPosition(), 0., ms);
   // now let's move the car
   for (int i=0; i<50; i++) {
-    car.applyControlInput(Vector2(.2, 0.), 0.1);
-    if (i % 15 == 0) {
+    car.applyControlInput(Vector2(.2, 0.3), 0.1);
+    if (i % 10 == 0) {
       car_states.push_back(car.getActualState());
       measured_car_states.push_back(car.getMeasuredState());
     } 
   }
   for (int i=0; i<50; i++) {
-    car.applyControlInput(Vector2(.2, -0.), 0.1);
-    if (i % 15 == 0) {
+    car.applyControlInput(Vector2(.2, -0.3), 0.1);
+    if (i % 10 == 0) {
+      car_states.push_back(car.getActualState());
+      measured_car_states.push_back(car.getMeasuredState());
+    } 
+  }
+  for (int i=0; i<50; i++) {
+    car.applyControlInput(Vector2(.4, -0.1), 0.1);
+    if (i % 10 == 0) {
+      car_states.push_back(car.getActualState());
+      measured_car_states.push_back(car.getMeasuredState());
+    } 
+  }
+  for (int i=0; i<50; i++) {
+    car.applyControlInput(Vector2(.1, 0.), 0.1);
+    if (i % 10 == 0) {
       car_states.push_back(car.getActualState());
       measured_car_states.push_back(car.getMeasuredState());
     } 
