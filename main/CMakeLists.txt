@@ -8,5 +8,6 @@ target_link_libraries(${PROJECT_NAME}
     types
     Plotting
     Robot
+    Simulation
 )
 

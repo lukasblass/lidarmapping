@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <vector>
+#include <types/types.h>
 
 #ifndef LIDAR_H_
 #define LIDAR_H_
@@ -11,7 +12,12 @@ struct Measurement {
     distance(d), angle(a) {}
    double distance;
    double angle;
-}; 
+};
+
+struct FullLidarMeasurement {
+  std::vector<Measurement> measurements;
+  Vector3 lidar_state; // position and orientation at measurement
+};
 
 class Lidar {
   public: 

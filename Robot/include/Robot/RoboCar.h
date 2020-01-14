@@ -93,6 +93,8 @@ class AccelerationSensor {
 class RoboCar {
   public:
   RoboCar(Lidar lidar, Vector3 initial_state);
+  RoboCar& operator= (const RoboCar& car) {}
+
   
   // TODO implement actual and measured accelerations and positions
   // to model a sensor on the car, e.g. by implementing a sensor class

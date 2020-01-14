@@ -23,8 +23,8 @@ class Roomscanner {
     \param @pos [in] the current position of the lidar
     \param @measurements [out] a vector measurements
   */
-  void scanRooms(const Point2& pos, const double heading, 
-         std::vector<Measurement>& measurements);
+  void scanRooms(const Vector3& state, const double heading, 
+         FullLidarMeasurement& measurement);
 
   double computeDistanceRayToWall(const Line& ray, const Line& wall);
 

@@ -5,13 +5,14 @@
 Roomscanner::Roomscanner(Lidar lidar_, std::vector<Room2D> rooms_) :
     lidar(lidar_), rooms(rooms_) {}
 
-void Roomscanner::scanRooms(const Point2& pos, const double sensor_heading,
-         std::vector<Measurement>& measurements) {
-  measurements.clear();
-  const double PI = 3.14159265359;
+void Roomscanner::scanRooms(const Vector3& state, const double sensor_heading,
+         FullLidarMeasurement& ms) {
+  ms.lidar_state = state;
+  ms.measurements.clear();
+  Vector2 pos = state.topRows(2);
   
   const int mps{lidar.getMeasurementsPerCycle()};
-  measurements.reserve(mps); // we know exactly how many measurements we make
+  ms.measurements.reserve(mps); // we know exactly how many measurements we make
   double heading = 0.;
 
   for (int i=0; i < mps; i++) {
@@ -36,9 +37,9 @@ void Roomscanner::scanRooms(const Point2& pos, const double sensor_heading,
       }
     }
     if (has_intersection) {
-      measurements.push_back(Measurement(min_dist, heading));
+      ms.measurements.push_back(Measurement(min_dist, heading));
     } else {
-      measurements.push_back(Measurement(-1., heading));
+      ms.measurements.push_back(Measurement(-1., heading));
     }
   }
 }
