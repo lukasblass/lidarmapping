@@ -77,13 +77,13 @@ void writingToFileFunction(std::vector<FullLidarMeasurement> fms, std::vector<Ve
 
   outstream << "walls"<< std::endl;
   for (const FullLidarMeasurement& ms : fms) {
-    double theta = 0; //ms.lidar_state(2);
+    double theta = ms.lidar_state(2);
     double x = ms.lidar_state(0);
     double y = ms.lidar_state(1);
     
     Matrix3 T;
-    T <<  cos(theta), -sin(theta), ms.lidar_state(0),
-          sin(theta),  cos(theta), ms.lidar_state(1),
+    T <<  cos(theta), -sin(theta), x,
+          sin(theta),  cos(theta), y,
           0,           0,          1; 
     for (const Measurement& m : ms.measurements) {
      if (m.distance >= 0) {
@@ -91,7 +91,7 @@ void writingToFileFunction(std::vector<FullLidarMeasurement> fms, std::vector<Ve
                 m.distance * sin(m.angle), 1);
       pt = T * pt;
       outstream << pt(0) << " " << pt(1) << std::endl;
-      } 
+      }
     }
   }
   outstream.close();
@@ -111,7 +111,7 @@ void Simulator::run() {
   Roomscanner scanner(car.lidar, rooms);
   
   FullLidarMeasurement full_measurement;
-  scanner.scanRooms(car.getMeasuredState(), 0., full_measurement);
+  scanner.scanRooms(car.getActualState(), 0., full_measurement);
   std::vector<FullLidarMeasurement> fms;
   fms.push_back(full_measurement);
 
@@ -121,6 +121,8 @@ void Simulator::run() {
     if (i % 10 == 0) {
       car_states.push_back(car.getActualState());
       measured_car_states.push_back(car.getMeasuredState());
+      scanner.scanRooms(car.getActualState(), 0., full_measurement);
+      fms.push_back(full_measurement);
     } 
   }
   for (int i=0; i<50; i++) {
@@ -128,10 +130,12 @@ void Simulator::run() {
     if (i % 10 == 0) {
       car_states.push_back(car.getActualState());
       measured_car_states.push_back(car.getMeasuredState());
-      scanner.scanRooms(car.getMeasuredState(), 0., full_measurement);
+      scanner.scanRooms(car.getActualState(), 0., full_measurement);
       fms.push_back(full_measurement);
     } 
   }
+  // scanner.scanRooms(car.getActualState(), 0., full_measurement);
+  // fms.push_back(full_measurement);
   
   std::thread writeToFile(writingToFileFunction, fms, car_states,
       measured_car_states, car.CAR_DIMENSIONS);

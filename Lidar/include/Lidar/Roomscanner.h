@@ -26,6 +26,10 @@ class Roomscanner {
   void scanRooms(const Vector3& state, const double heading, 
          FullLidarMeasurement& measurement);
 
+  // sets up an LSE with 2 equations and 2 unknowns by setting
+  // ray.p1 + a * (ray.p2 - ray.p1) = wall.p1 + b * (wall.p2 - wall.p1)
+  // if the LSE has a solution with a,b in [0,1] the lines intersect
+  // and we can compute directly the distance from ray.p1 to the intersection point
   double computeDistanceRayToWall(const Line& ray, const Line& wall);
 
   public:
