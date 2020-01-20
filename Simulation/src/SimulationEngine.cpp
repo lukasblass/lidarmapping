@@ -107,9 +107,9 @@ void Simulator::advanceInTime(const Vector2& signal, std::vector<std::thread>& t
   car->getMeasuredState(), car->CAR_DIMENSIONS));
   
   std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-  const int duration = std::chrono::duration_cast<
+  const int64_t duration = std::chrono::duration_cast<
         std::chrono::milliseconds>(end - begin).count();
-  int dt_in_ms = dt * 1000;
+  int dt_in_ms = int(dt * 100);
   std::this_thread::sleep_for(std::chrono::milliseconds(dt_in_ms - 5 - duration));
 }
 
@@ -120,8 +120,6 @@ void Simulator::run() {
   
   FullLidarMeasurement full_measurement;
   roomscanner->scanRooms(car->getActualState());
-  std::vector<FullLidarMeasurement> fms;
-  fms.push_back(full_measurement);
   std::chrono::steady_clock::time_point g_begin = std::chrono::steady_clock::now();
   std::vector<std::thread> threads;
   // now let's move the car
