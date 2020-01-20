@@ -15,6 +15,10 @@ int Lidar::getMeasurementsPerCycle() {
   return measurements_per_cycle;
 }
 
-int Lidar::getRange() {
+double Lidar::getRange() {
   return range;
+}
+
+double Lidar::getSigma() {
+  return sigma;
 }

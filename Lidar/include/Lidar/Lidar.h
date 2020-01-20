@@ -21,17 +21,23 @@ struct FullLidarMeasurement {
 
 class Lidar {
   public: 
-  Lidar(int measurements_, int range_) : measurements_per_cycle(measurements_),
-    range(range_) {
+  Lidar(int measurements_, double range_) : measurements_per_cycle(measurements_),
+    range(range_), sigma(0.) {
+  }
+
+  Lidar(int measurements_, double range_, double sigma_) : measurements_per_cycle(measurements_),
+    range(range_), sigma(sigma_) {
   }
 
   std::vector<Measurement> scanACircle(const int radius);
   int getMeasurementsPerCycle();
-  int getRange();
+  double getRange();
+  double getSigma();
   
   private:
   int measurements_per_cycle = 360;
-  int range;
+  double range;
+  double sigma; // std deviation of the noise
 };
 
 #endif
