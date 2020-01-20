@@ -2,11 +2,13 @@
 
 // TODO create a config file to store parameters for 
 // the different objects instantiated here
-Simulator::Simulator() : lidar(100, 8, 0.02),
-      car(lidar, Vector3(.5, 3.5, 0.)) {
-
+Simulator::Simulator() {
+  Lidar lidar(100, 8., 0.02);
+  car = new RoboCar(lidar, Vector3(0.5, 3.5, 0.));
+  
   // seting up the geometry
   // TODO also read this from file
+  std::vector<Room2D> rooms;
   std::vector<Eigen::Vector2d> room;
   room.push_back(Vector2(5.,6.));
   room.push_back(Vector2(5.,8.));
@@ -24,6 +26,8 @@ Simulator::Simulator() : lidar(100, 8, 0.02),
   room.push_back(Vector2(9.,6.));
   room.push_back(Vector2(5.,6.));
   rooms.push_back(room);
+
+  roomscanner = new Roomscanner(car->lidar, rooms);
 }
 
 void realTimeWriteToFile(const Eigen::MatrixXi& grid, Vector3 car_state,
@@ -94,48 +98,45 @@ void realTimeWriteToFile(const Eigen::MatrixXi& grid, Vector3 car_state,
   outstream.close();
 }
 
+void Simulator::advanceInTime(const Vector2& signal, std::vector<std::thread>& threads,
+   const double dt) {
+  std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+  car->applyControlInput(signal, dt);
+  roomscanner->scanRooms(car->getActualState());
+  threads.push_back(std::thread(realTimeWriteToFile, std::ref(roomscanner->cleaned_grid), car->getActualState(),
+  car->getMeasuredState(), car->CAR_DIMENSIONS));
+  
+  std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+  const int duration = std::chrono::duration_cast<
+        std::chrono::milliseconds>(end - begin).count();
+  int dt_in_ms = dt * 1000;
+  std::this_thread::sleep_for(std::chrono::milliseconds(dt_in_ms - 5 - duration));
+}
+
+
 void Simulator::run() {
 
   std::thread plotting_thread((PlottingThread()));
-
-  // let the car observe its environment
-  Roomscanner scanner(car.lidar, rooms);
   
   FullLidarMeasurement full_measurement;
-  scanner.scanRooms(car.getActualState(), 0., full_measurement);
+  roomscanner->scanRooms(car->getActualState());
   std::vector<FullLidarMeasurement> fms;
   fms.push_back(full_measurement);
   std::chrono::steady_clock::time_point g_begin = std::chrono::steady_clock::now();
   std::vector<std::thread> threads;
   // now let's move the car
   for (int i=0; i<50; i++) {
-    std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-    car.applyControlInput(Vector2(.2, 0.3), 0.1);
-    scanner.scanRooms(car.getActualState(), 0., full_measurement);
-    std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-    threads.push_back(std::thread(realTimeWriteToFile, std::ref(scanner.cleaned_grid), car.getActualState(),
-    car.getMeasuredState(), car.CAR_DIMENSIONS));
-    
-    const int duration = std::chrono::duration_cast<
-          std::chrono::milliseconds>(end - begin).count();
-    std::this_thread::sleep_for(std::chrono::milliseconds(100 - duration));
+    advanceInTime(Vector2(.2, 0.3), threads, dt);
   }
-
   for (int i=0; i<50; i++) {
-    car.applyControlInput(Vector2(.2, -0.3), 0.1);
-    scanner.scanRooms(car.getActualState(), 0., full_measurement);
-    threads.push_back(std::thread(realTimeWriteToFile, std::ref(scanner.cleaned_grid), car.getActualState(),
-    car.getMeasuredState(), car.CAR_DIMENSIONS));
+    advanceInTime(Vector2(.2, -0.3), threads, dt);
   }
-  for (int i=0; i<45; i++) {
-    car.applyControlInput(Vector2(.5, 0.), 0.1);
-    scanner.scanRooms(car.getActualState(), 0., full_measurement);
-    threads.push_back(std::thread(realTimeWriteToFile, std::ref(scanner.cleaned_grid), car.getActualState(),
-    car.getMeasuredState(), car.CAR_DIMENSIONS));
+  for (int i=0; i<50; i++) {
+    advanceInTime(Vector2(.5, 0.), threads, dt);
   }
-
   for (auto& t : threads) {
     t.join();
   }
+
   plotting_thread.join();
 }

@@ -69,8 +69,8 @@ void Roomscanner::scanRoomsThread(const Vector3& state, const double I_theta_sta
   }
 }
 
-void Roomscanner::scanRooms(const Vector3& state, const double sensor_heading,
-         FullLidarMeasurement& ms) {
+void Roomscanner::scanRooms(const Vector3& state) {
+  FullLidarMeasurement ms;
   ms.lidar_state = state;
   ms.measurements.clear();
   Vector2 pos = state.topRows(2);

@@ -27,11 +27,9 @@ class Roomscanner {
   /**
   * \brief computes the measurements for the lidar at the current
     position in the room
-    \param @pos [in] the current position of the lidar
-    \param @measurements [out] a vector measurements
+    \param @state [in] the current state of the car/lidar
   */
-  void scanRooms(const Vector3& state, const double heading, 
-         FullLidarMeasurement& measurement);
+  void scanRooms(const Vector3& state);
 
   private:
   // sets up an LSE with 2 equations and 2 unknowns by setting

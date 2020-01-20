@@ -22,7 +22,11 @@ class Simulator {
   void run();
 
   private:
-  Lidar lidar;
-  RoboCar car;
-  std::vector<Room2D> rooms;
+  void advanceInTime(const Vector2& signal,
+      std::vector<std::thread>& threads, const double dt);
+
+  private:
+  Roomscanner* roomscanner;
+  RoboCar* car;
+  double dt = 0.1; // seconds
 };
